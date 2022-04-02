@@ -63,6 +63,4 @@ object exe0 extends App {
   // println(f"$purchases%1.2f");
   // println(f"$sales%1.2f");
   printWriter.close() // Closing printwriter for the file "Ex0"
-
-
 }
