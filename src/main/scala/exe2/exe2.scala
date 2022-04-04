@@ -31,6 +31,15 @@ object exe2 extends App{
       throw new FileNotFoundException ()
     directory = new File(pathName)
     //loop over files, choose whichever end with vm
+//    Initialization. This asm code should appear as the first lines of each asm file.
+//    // Initialize the SP to 256
+//    @256
+//    D=A
+//    @SP
+//    M=D
+//    //call to the code that translate the vm command: call Sys.int 0
+//    //call function name "Sys.init" with 0 arguments
+
     recursiveListFiles(directory).filter(_.getName.endsWith(".vm")).foreach// loops over files in "files"
     {
       file=>
@@ -95,19 +104,19 @@ object exe2 extends App{
 
             case "label" =>
 
-              str= function.label(name, words(1))
+              str= function.label(file.getName, words(1))
               printWriter.write(str)
               Breaks
 
             case "goto" =>
 
-              str=function.goto(name, words(1));
+              str=function.goto(file.getName, words(1));
               printWriter.write(str)
               Breaks
 
             case "if_goto" =>
 
-              str=function.if_goto(name, words(1));
+              str=function.if_goto(file.getName, words(1));
               printWriter.write(str)
               Breaks
 

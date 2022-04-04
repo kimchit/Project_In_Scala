@@ -192,7 +192,7 @@ object function extends App{
   }
   def function(functionName:String,numArgs:String): String=
   {
-    str=s"($functionName)\n@$numArgs\nD=A\n@f.End\nD;JEQ\n(f.Loop)\n@SP\nA=M\nM=0\n@SP\nM=M+1\n@f.Loop\nD=D-1;JNE\n(f.End)\n"
+    str=s"($functionName)\n@$numArgs\nD=A\n@$functionName.End\nD;JEQ\n($functionName.Loop)\n@SP\nA=M\nM=0\n@SP\nM=M+1\n@$functionName.Loop\nD=D-1;JNE\n($functionName.End)\n"
     return str
   }
   def return_(): String=
