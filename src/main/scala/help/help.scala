@@ -1,11 +1,5 @@
 package help
 import java.io._
-import java.nio.file.{Files, Paths}
-import scala.io.Source
-import java.io.File
-import java.io.PrintWriter
-import scala.util.control._
-import java.io._
 import scala.util.control._
 
 //object help extends App{
