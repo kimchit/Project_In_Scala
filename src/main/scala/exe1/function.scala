@@ -160,4 +160,46 @@ object function extends App{
       };
     }
   }
+  def label(fileName:String,programName:String): String=
+  {
+      str= s"($fileName.$programName)\n";
+      return str;
+  }
+  def goto(fileName:String,programName:String): String=
+  {
+      str= s"@$fileName.$programName\n0;JMP\n";
+       return str;
+  }
+  def if_goto(fileName:String,programName:String): String=
+  {
+      str= s"@SP\nM=M-1\nA=M\nD=M\n@$fileName.$programName\nD;JNE\n";
+      return str;
+  }
+  def call(functionName:String,numArgs:String): String=
+  {
+    val newARG=numArgs.toInt-5
+    str= s"@$functionName.ReturnAddress\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+    //str+= push("constant","LCL","")//push LCL
+    str+=s"@LCL\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+    //str+=push("constant","ARG","")//push ARG
+    str+=s"@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+    //str+= push("constant","THIS","")// push THIS
+    str+=s"@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+    //str+=push("constant","THAT","")// push THAT
+    str+=s"@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+    str+=s"@SP\nD=M\n@$newARG\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n@$functionName\n0;JMP\n($functionName.ReturnAddress)\n"
+    return str
+  }
+  def function(functionName:String,numArgs:String): String=
+  {
+    str=s"($functionName)\n@$numArgs\nD=A\n@f.End\nD;JEQ\n(f.Loop)\n@SP\nA=M\nM=0\n@SP\nM=M+1\n@f.Loop\nD=D-1;JNE\n(f.End)\n"
+    return str
+  }
+  def return_(): String=
+  {
+    str=s"@LCL\nD=M\n@5\nA=D-A\nD=M\n@13\nM=D\n@SP\nM=M-1\nA=M\nD=M\n@ARG\nA=M\nM=D\n@ARG\nD=M\n@SP\nM=D+1\n"
+    str+=s"@LCL\nM=M-1\nA=M\nD=M\n@THAT\nM=D\n@LCL\nM=M-1\nA=M\nD=M\n@THIS\nM=D\n@LCL\nM=M-1\nA=M\nD=M\n@ARG\n"
+    str+=s"M=D\n@LCL\nM=M-1\nA=M\nD=M\n@LCL\nM=D\n@13\nA=M\n0;JMP\n"
+    return str
+  }
 }
