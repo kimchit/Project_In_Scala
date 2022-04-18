@@ -39,15 +39,25 @@ object exe2 extends App{
 //    M=D
 //    //call to the code that translate the vm command: call Sys.int 0
 //    //call function name "Sys.init" with 0 arguments
-
-    recursiveListFiles(directory).filter(_.getName.endsWith(".vm")).foreach// loops over files in "files"
+    var Array = recursiveListFiles(directory)
+    val name= (pathName.split("\\\\").last).split(".vm").last; //split name of directory and take the last name of package
+    //create outPut file and save in fileObject
+    //fileObject= new File( name+".asm") //new file to the output
+    fileObject=new File(directory,name+".asm")
+    printWriter = new PrintWriter(fileObject); // Passing reference of file to the printwriter
+    if(Array.filter(_.getName.endsWith(".vm")).length > 1)
+    {
+      str=s"@256\nD=A\n@SP\nM=D\n@Sys.init.RETURN0\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@LCL\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@0\nD=D-A\n@5\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n@Sys.init\n0;JMP\n(Sys.init.RETURN0)\n";
+      printWriter.write(str)
+    }
+    Array.filter(_.getName.endsWith(".vm")).foreach// loops over files in "files"
     {
       file=>
-        val name= (file.getName.split("\\\\").last).split(".vm").last; //split name of directory and take the last name of package
-        //create outPut file and save in fileObject
-        //fileObject= new File( name+".asm") //new file to the output
-        fileObject=new File(directory,name+".asm")
-        printWriter = new PrintWriter(fileObject); // Passing reference of file to the printwriter
+//        val name= (file.getName.split("\\\\").last).split(".vm").last; //split name of directory and take the last name of package
+//        //create outPut file and save in fileObject
+//        //fileObject= new File( name+".asm") //new file to the output
+//        fileObject=new File(directory,name+".asm")
+//        printWriter = new PrintWriter(fileObject); // Passing reference of file to the printwriter
         Source.fromFile(file.getAbsolutePath).getLines().foreach
         { line=>
           val words= line.split(" ")
@@ -92,31 +102,31 @@ object exe2 extends App{
               Breaks
 
             case "push" =>
-              str=function.push(words(1),words(2).toInt,file.getName)
+              str=function.push(words(1),words(2).toInt,file.getName.split(".vm").last)
               printWriter.write(str)
               Breaks
 
             case "pop" =>
 
-              str=function.pop(words(1),words(2).toInt,file.getName)
+              str=function.pop(words(1),words(2).toInt,file.getName.split(".vm").last)
               printWriter.write(str)
               Breaks
 
             case "label" =>
 
-              str= function.label(file.getName, words(1))
+              str= function.label(file.getName.split(".vm").last, words(1))
               printWriter.write(str)
               Breaks
 
             case "goto" =>
 
-              str=function.goto(file.getName, words(1));
+              str=function.goto(file.getName.split(".vm").last, words(1));
               printWriter.write(str)
               Breaks
 
-            case "if_goto" =>
+            case "if-goto" =>
 
-              str=function.if_goto(file.getName, words(1));
+              str=function.if_goto(file.getName.split(".vm").last, words(1));
               printWriter.write(str)
               Breaks
 
@@ -141,8 +151,9 @@ object exe2 extends App{
             case _ =>Breaks;//println("invalid command in input file") ///default
           }
         }
-        printWriter.close();
+       //printWriter.close();
     }
+    printWriter.close();
   }
   catch
   {
