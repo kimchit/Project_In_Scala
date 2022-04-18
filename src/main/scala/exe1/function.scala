@@ -5,6 +5,7 @@ package exe1
 import scala.util.control._
 object function extends App{
   var str="";
+
   var counter=0;
   def add(): String=
   {
