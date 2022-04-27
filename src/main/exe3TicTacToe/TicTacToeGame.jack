@@ -83,9 +83,9 @@ class TicTacToeGame {
 			return TicTacToeGame.processBoard(); //return 3 if the player won, 2 if there is a draw, 1 otherwise
 		}else {
 			let computerMove = TicTacToeGame.getComputerMove(p);
-			//do board.makeMove(computerMove[0],computerMove[1],p);
-		  //	do board.drawMove(computerMove[0],computerMove[1],p);
-		  //	do computerMove.dispose();
+			do board.makeMove(computerMove[0],computerMove[1],p);
+		  	do board.drawMove(computerMove[0],computerMove[1],p);
+		  	do computerMove.dispose();
 			return TicTacToeGame.processBoard();
 		}
 	}
@@ -156,10 +156,8 @@ class TicTacToeGame {
 	function Array getBestMove(Piece p) {
 		var int i,moveCount, currentScore,nextScore;
 		var Array moveList, bestMove;
-
 		let i = 0;
 		let currentScore = -10; // we always want to get a move!
-
 		let bestMove=Array.new(3);
 		let moveCount = board.getFreeCellCount();
 		let moveList = board.getAvailableMoves();
