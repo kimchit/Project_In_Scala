@@ -332,6 +332,7 @@ object function extends App{
       str= s"@SP\nM=M-1\nA=M\nD=M\n@$fileName.$programName\nD;JNE\n";
       return str;
   }
+  //after pushing n parameters call the function g
   def call(functionName:String,numArgs:String): String=
   {
     str= s"@$functionName.ReturnAddress$counter\nD=A\n@SP\nAM=M\nM=D\n@SP\nM=M+1\n"

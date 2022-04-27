@@ -1,0 +1,69 @@
+	field int type; // 1 = o , 2 = x
+	field int width,height;
+
+	constructor Piece new(int t) {
+		let type = t;
+
+		if(t=1) { //if it's an o
+			let width = 16;
+			let height = 16;
+		}else { //if it's a X
+			let width = 16;
+			let height = 16;
+		}
+
+		return this;
+	}
+
+	method int getType() {
+		return type;
+	}
+
+	method void drawPiece(int x, int y) {
+		if(type=1) {
+			do drawO(x,y);
+		}else {
+			do drawX(x,y);
+		}
+		return;
+	}
+
+	method void drawO(int x, int y) {
+		var int rOuter,rInner,t;
+		let t = 4;
+		let rOuter = width/2; //radius of the Outer circle
+		let rInner = ro-t; //radius of the Inner circle
+
+		do Screen.drawCircle(x+rOuter,y+rOuter,rOuter); //draws a circle of radius rOuter around the point (x+ro,y+ro)
+		do Screen.setColor(false); //black
+		do Screen.drawCircle(x+rOuter,y+rOuter,rInner); //draws a circle of radius rInner around the point (x+ro,y+ro)
+		do Screen.setColor(true); //white, the center of the o
+		return;
+	}
+
+	method void drawX(int x, int y) {
+		var int t,i;
+		let t = 4;
+		let i = t-1;
+		while(~(i<0)) {
+
+            //top left to bottom right diagonal
+			do Screen.drawLine(x,y+height-i,x+width-i,y); //lower line
+			do Screen.drawLine(x+i,y+height,x+width,y+i); //Upper line
+
+            //bootom left to top right diagonal
+			do Screen.drawLine(x+i,y,x+width,y+height-i); //lower line
+			do Screen.drawLine(x,y+i,x+width-i,y+height); //upper line
+
+			let i = i-1;
+		}
+		return;
+	}
+
+	method int getHeight() {
+		return height;
+	}
+
+	method int getWidth() {
+		return width;
+	}
