@@ -9,8 +9,8 @@ class InputUtil {
 
 	function void eraseMessage() {
 		var String s;
-		do Output.moveCursor(ir,ic); moves the cursor to the ir-th column of the ic-th row, and
-                                     erases the character displayed there
+		do Output.moveCursor(ir,ic); //moves the cursor to the ir-th column of the ic-th row, and
+                                    // erases the character displayed there
 		let s = "                                                 ";
 		do Output.printString(s);
 		do s.dispose();
@@ -50,7 +50,7 @@ class InputUtil {
 		do InputUtil.eraseMessage();
 		while(true) {
 			do Output.moveCursor(ir,ic);// moves the cursor to the ir-th column of the ic-th row, and
-                                          erases the character displayed there
+                                         // erases the character displayed there
 			do Output.printString(s);
 			let c = Keyboard.readChar();
 			// 48 to 57
