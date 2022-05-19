@@ -21,7 +21,7 @@ class Piece {
 	}
 
 	method void drawPiece(int x, int y) {
-		if(type=1) {
+		if(type=1) { //
 			do drawNaught(x,y);
 		}else {
 			do drawCross(x,y);

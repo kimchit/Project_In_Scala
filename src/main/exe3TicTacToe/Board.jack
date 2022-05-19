@@ -228,37 +228,4 @@ class Board {
         		return;
         	}
 
-        	// take back the move
-        	method void takeBackMove(int row, int col,Piece p) {
-        		let boardArray[posToIndex(row,col)] = 0;
-        		let freeCellCount = freeCellCount + 1;
-        		return;
-        	}
-
-
-        	method int getFreeCellCount() {
-        		return freeCellCount;
-        	}
-
-        	method Array getAvailableMoves() {
-        		var Array moves;
-        		var int r1,c1,counter;
-        		let r1 = 0;
-        		let c1 = 0;
-        		let moves = Array.new(freeCellCount*2);
-        		let counter = 0;
-        		while(r1<3) {
-        			let c1 = 0;
-        			while(c1<3) {
-        				if(boardArray[posToIndex(r1,c1)]=0) {
-        					let moves[counter] = r1;
-        					let moves[counter+1] = c1;
-        					let counter = counter + 2;
-        				}
-        				let c1 = c1 + 1;
-        			}
-        			let r1 = r1 + 1;
-        		}
-        		return moves;
-        	}
         }
