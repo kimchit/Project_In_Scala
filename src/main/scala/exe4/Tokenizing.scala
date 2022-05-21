@@ -15,23 +15,23 @@ object Tokenizing {
     val these = f.listFiles
     these ++ these.filter(_.isDirectory).flatMap(recursiveListFiles)
   }
-  def main(args: Array[String])={
+  def Tokenizer()={
   // val directory;
   println("please enter your directory")
-  val pathName= scala.io.StdIn.readLine(); //get path name from the user C:\Users\user\Desktop\nand2tetris\nand2tetris\projects\07\MemoryAccess\BasicTest
+  val pathName= scala.io.StdIn.readLine(); //get path name from the user
   var directory:File=null
   var printWriter:PrintWriter=null
   var fileObject:File=null
   val bool= Files.exists(Paths.get(pathName))
-  var str: String=null;
-  var temp:String=""
+ // var str: String=null;
+ // var temp:String=""
   try
   {
     if(!bool)
       throw new FileNotFoundException ()
     directory = new File(pathName)
-    //loop over files, choose whichever end with vm
-    recursiveListFiles(directory).filter(_.getName.endsWith(".jack")).foreach// loops over files in "files"
+    //loop over files, choose whichever end with .jack
+    recursiveListFiles(directory).filter(_.getName.endsWith(".jack")).foreach// loops over files in "directory"
     {
       file=>
         val name= (file.getName.split("\\\\").last).split(".jack").last; //split name of directory and take the last name of package
