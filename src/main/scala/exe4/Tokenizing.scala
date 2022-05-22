@@ -6,17 +6,14 @@ import java.io._
 import java.nio.file.{Files, Paths}
 import scala.io.Source
 import scala.io.Source._
-import scala.util.control.Breaks
 
 
-object Tokenizing {
+object Tokenizing extends App {
 
   def recursiveListFiles(f: File): Array[File] = {
     val these = f.listFiles
     these ++ these.filter(_.isDirectory).flatMap(recursiveListFiles)
   }
-  def Tokenizer()={
-  // val directory;
   println("please enter your directory")
   val pathName= scala.io.StdIn.readLine(); //get path name from the user
   var directory:File=null
@@ -57,6 +54,5 @@ object Tokenizing {
     case e:IOException => println("Had an IOException trying to read that file");
     case e:IllegalArgumentException => println("invalid command in input file");
 
-  }
   }
 }
