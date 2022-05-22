@@ -33,14 +33,9 @@ object exe2 extends App{
     directory = new File(pathName)
     //loop over files, choose whichever end with vm
 //    Initialization. This asm code should appear as the first lines of each asm file.
-//    // Initialize the SP to 256
-//    @256
-//    D=A
-//    @SP
-//    M=D
-//    //call to the code that translate the vm command: call Sys.int 0
-//    //call function name "Sys.init" with 0 arguments
+
     var Array = recursiveListFiles(directory)
+    Array.filter(_.getName.endsWith(".vm"))
     val name= (pathName.split("\\\\").last).split(".vm").last; //split name of directory and take the last name of package
     //create outPut file and save in fileObject
     //fileObject= new File( name+".asm") //new file to the output

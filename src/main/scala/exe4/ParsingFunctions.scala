@@ -9,8 +9,18 @@ object ParsingFunctions {
   val firstTerm:List[String]=List("<integerConstant>","<stringConstant>","<keywordConstant>","<identifier>","(","-","~")
   val firstStatements:List[String]=List("let","if","while","do","return")
   val firstOp:List[String]=List("=", "+",  "*" ,"/", "&"," | ","<" ,">","-")
+  val firstClassVarDec:List[String]=List("static","field")
+  val firstSubroutineDec:List[String]=List("constructor","function","method")
+  val firstType:List[String]=List("int","char","boolean")
+
+
+
   def start(input:List[Token]):String={
-    return null
+    listOfTokens=input
+    current=input(0)
+    next=input(1)
+    class_()
+    return result
   }
 
  /* ***helper methods*** */
@@ -29,40 +39,131 @@ object ParsingFunctions {
   //updates current and next tokens from the token list
   def next_token():Unit={
     current= listOfTokens(listOfTokens.indexOf(current)+1)
-    next= listOfTokens(listOfTokens.indexOf(current)+1)
+    if (listOfTokens.indexOf(current)+1 ==listOfTokens.length)
+      next= listOfTokens(listOfTokens.indexOf(current)+1)
   }
 
   /* ***Program Structure Parsing Functions*** */
 
   def class_():Unit={
-
+    result+= "<class\n>"
+    matchTerminal("class")
+    className()
+    matchTerminal("{")
+     // classVarDec* || subroutineDec*
+    while(firstClassVarDec.contains(current.getContent()))
+    {
+      classVarDec()
+    }
+    while(firstSubroutineDec.contains(current.getContent()))
+    {
+      subroutineDec()
+    }
+    matchTerminal("}")
+    result+= "</class\n>"
   }
   def classVarDec():Unit={
-
+    matchTerminal("(")
+    if(current.getContent()=="static")
+      matchTerminal("static")
+    else if(current.getContent()=="field")
+      matchTerminal("field")
+    matchTerminal(")")
+    type_()
+    varName()
+    while(current.getContent()==",")
+    {
+      matchTerminal("(")
+      matchTerminal(",")
+      varName()
+      matchTerminal(")")
+    }
+    matchTerminal(";")
   }
   def type_():Unit={
-
+    if(current.getContent()=="int")
+      matchTerminal("int")
+    else if(current.getContent()=="char")
+      matchTerminal("char")
+    else if(current.getContent()=="boolean")
+      matchTerminal("boolean")
+    else
+      className()
   }
   def subroutineDec():Unit={
+    matchTerminal("(")
+    if(current.getContent()=="constructor")
+      matchTerminal("constructor")
+    else if(current.getContent()=="function")
+      matchTerminal("function")
+    else if(current.getContent()=="method")
+      {matchTerminal("method")}
+    matchTerminal(")")
+    matchTerminal("(")
+    if(current.getContent()=="void")
+      matchTerminal("void")
+    else
+      type_()
+
+    matchTerminal(")")
+    subroutineName()
+    matchTerminal("(")
+    parameterList()
+    matchTerminal(")")
+    subroutineBody()
 
   }
   def parameterList():Unit={
-
+    if(firstType.contains(current.getContent()) || current.getContent()==className()) //0 or 1 time ((type varName)(','type varName)*)?
+    {
+      matchTerminal("(")
+      matchTerminal("(")
+      type_()
+      varName()
+      matchTerminal(")")
+      while (current.content == ",") //(','type varName)*
+      {
+        matchTerminal("(")
+        matchTerminal(",")
+        type_()
+        varName()
+        matchTerminal(")")
+      }
+      matchTerminal(")")
+    }
   }
   def subroutineBody():Unit={
-
+    matchTerminal("{")
+    while(current.getContent()=="var")
+      varDec()
+    statements()
+    matchTerminal("}")
   }
   def varDec():Unit={
-
+    if(current.getContent()=="var")
+      matchTerminal("var")
+    type_()
+    varName()
+    while (current.content == ",") //(','type varName)*
+    {
+      matchTerminal("(")
+      matchTerminal(",")
+      varName()
+      matchTerminal(")")
+    }
+    matchTerminal(";")
   }
   def className():Unit={
-
+    if(current.getOpenLabel()=="<identifier>") //className
+      matchTerminal("<identifier>")
   }
   def subroutineName():Unit={
-
+    if(current.getOpenLabel()=="<identifier>")
+      matchTerminal("<identifier>")
   }
   def varName():Unit={
-
+    if(current.getOpenLabel()=="<identifier>") //varName
+      matchTerminal("<identifier>")
   }
  /* ***Expressions Parsing Funsvtions*** */
 
@@ -116,7 +217,7 @@ object ParsingFunctions {
    //this code fragment applies to both options
        subroutineName()
        matchTerminal("(")
-       expressionList()
+    expressionList()
        matchTerminal(")")
   }
 

@@ -2,7 +2,7 @@ package exe4
 
 object Main extends App{
 
-     def main(args: Array[String])={
+     def myMain(args: Array[String])={
        //val myString = "atara"
       // val KeyWordsPattern =List("atara","kimchit")
       // KeyWordsPattern.find(x=>x == myString) match {
@@ -11,6 +11,4 @@ object Main extends App{
      //  }
 
     }
-
-
 }
