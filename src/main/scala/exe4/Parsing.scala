@@ -4,7 +4,6 @@ import exe4.TokenizingFunctions._
 
 import java.io.{File, FileNotFoundException, IOException, PrintWriter}
 import java.nio.file.{Files, Paths}
-import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 object Parsing extends App {
@@ -36,15 +35,16 @@ object Parsing extends App {
           val name= (file.getName.split("\\\\").last).split("T.xml").last; //split name of directory and take the last segment
           fileObject=new File(directory,name+".xml")
           printWriter = new PrintWriter(fileObject); // Passing reference of file to the printwriter
-          val sourceFileTokens= new ListBuffer[Token]()
+          var sourceFileTokens:List[Token]=List[Token]()
           Source.fromFile(file.getAbsolutePath).getLines().foreach
           {line=>
               val token = line.split(" ")
               if (token(0)!="<tokens>" && token(0)!="</tokens>") {
-                sourceFileTokens+=new Token(token(0),token(1),token(2))
+                //sourceFileTokens.appended(new Token(token(0),token(1),token(2)))
+                sourceFileTokens :+= new Token(token(0),token(1),token(2))
               }
           }
-          printWriter.write(ParsingFunctions.start(sourceFileTokens.toList));
+          printWriter.write(ParsingFunctions.start(sourceFileTokens));
           printWriter.close();
 
       }

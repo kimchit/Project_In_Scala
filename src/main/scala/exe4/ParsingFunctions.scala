@@ -16,7 +16,11 @@ object ParsingFunctions {
 
 
   def start(input:List[Token]):String={
-    return null
+    listOfTokens=input
+    current=input(0)
+    next=input(1)
+    class_()
+    return result
   }
 
  /* ***helper methods*** */
@@ -35,7 +39,8 @@ object ParsingFunctions {
   //updates current and next tokens from the token list
   def next_token():Unit={
     current= listOfTokens(listOfTokens.indexOf(current)+1)
-    next= listOfTokens(listOfTokens.indexOf(current)+1)
+    if (listOfTokens.indexOf(current)+1 ==listOfTokens.length)
+      next= listOfTokens(listOfTokens.indexOf(current)+1)
   }
 
   /* ***Program Structure Parsing Functions*** */
