@@ -1,6 +1,7 @@
-package exe4
+package exe5
 
-import exe4.TokenizingFunctions._
+
+import exe5.TokenizingFunctions._
 
 import java.io.{File, FileNotFoundException, IOException, PrintWriter}
 import java.nio.file.{Files, Paths}
@@ -34,7 +35,7 @@ object Parsing extends App {
         file =>
 
           val name = (file.getName.split("\\\\").last).split("T.xml").last; //split name of directory and take the last segment
-          fileObject = new File(directory, name + ".xml")
+          fileObject = new File(directory, name + ".vm")
           printWriter = new PrintWriter(fileObject); // Passing reference of file to the printwriter
           var sourceFileTokens: List[Token] = List[Token]()
           Source.fromFile(file.getAbsolutePath).getLines().foreach { line =>
@@ -47,7 +48,8 @@ object Parsing extends App {
 
             }
           }
-          printWriter.write(ParsingFunctions.start(sourceFileTokens));
+          VM_Writer.Contsructor(fileObject);
+          ParsingFunctions.start(sourceFileTokens);
           sourceFileTokens=List[Token]()
           printWriter.close();
       }

@@ -1,14 +1,15 @@
 package exe4
 
-object Main extends App{
+  import exe4.Parsing._
+  import exe4.Tokenizing._
 
-     def myMain(args: Array[String])={
-       //val myString = "atara"
-      // val KeyWordsPattern =List("atara","kimchit")
-      // KeyWordsPattern.find(x=>x == myString) match {
-        // case Some(_) => println("yes")
-         //case None => println("fail")
-     //  }
+  object Main{
 
+    def main(args: Array[String]) ={
+      println("please enter your directory")
+      val pathName= scala.io.StdIn.readLine(); //get path name from the user
+      Tokenizing.tokenizing(pathName)
+      Parsing.parsing(pathName)
     }
+
 }

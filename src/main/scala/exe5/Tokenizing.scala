@@ -1,12 +1,11 @@
-package exe4;
+package exe5
 //Atara Ginsburg 315263442
 // Kimchit Choen 211762455
 //Group Number 150060.5782
+
 import java.io._
 import java.nio.file.{Files, Paths}
 import scala.io.Source
-import scala.io.Source._
-
 
 object Tokenizing extends App {
 
