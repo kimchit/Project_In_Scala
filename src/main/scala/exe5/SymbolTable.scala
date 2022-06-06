@@ -25,8 +25,8 @@ class SymbolTable (){
 
    //defines a new identifier for a given name, type and kind and assign it a running index
     def define(name:String,_type:String,kind:String):Unit={
-      val i = counter(Symbol.withName(kind))
-      if (kind=="ARG" || kind=="VAR")
+      val i = counter(Symbol.withName(kind.toUpperCase()))
+      if (kind=="arg" || kind=="var")
       subroutine_symbolTable.addOne(name,(_type,kind,i))
       else
         class_symbolTable.addOne(name,(_type,kind,i))

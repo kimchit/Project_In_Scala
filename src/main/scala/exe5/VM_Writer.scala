@@ -15,7 +15,7 @@ object VM_Writer {
     printWriter=new PrintWriter(outPutFile)
   }
 
-  def writePush(segment:Segment,index:Int):Unit={
+  def writePush(segment:Segment,index:Int):String={
     /*if(segment.equals(Segment.LOCAL))
       printWriter.write(s"push LCL $index\n")
     else if(segment.equals(Segment.ARG))
@@ -33,12 +33,12 @@ object VM_Writer {
     else if(segment.equals(Segment.POINTER))
       printWriter.write(s"push pointer $index\n")*/
     if(Segment.values.contains(segment))
-      printWriter.write(s"push ${segment.toString.toLowerCase} $index")
+      (s"push ${segment.toString.toLowerCase} $index")
     else
-      println("Error in vm_writer push")
+      ("Error in vm_writer push")
   }
 
-  def writePop(segment:Segment,index:Int):Unit={
+  def writePop(segment:Segment,index:Int):String={
     /*if(segment.equals(Segment.LCL))
       printWriter.write(s"pop LCL $index\n")
     else if(segment.equals(Segment.ARG))
@@ -54,31 +54,30 @@ object VM_Writer {
     else if(segment.equals(Segment.TEMP))
       printWriter.write(s"pop temp $index\n")*/
     if(Segment.values.contains(segment))
-      printWriter.write(s"pop ${segment.toString.toLowerCase} $index\n")
+     (s"pop ${segment.toString.toLowerCase} $index\n")
     else
-      println("Error in vm_writer pop")
+     ("Error in vm_writer pop")
   }
-  def writeArithmetic(command:Command):Unit={
-    printWriter.write(s"${command.toString.toLowerCase}\n")
+  def writeArithmetic(command:Command):String={
+   (s"${command.toString.toLowerCase}\n")
   }
-  def writeLabel(label:String):Unit={
-    printWriter.write(s"label $label\n")
+  def writeLabel(label:String):String={
+    (s"label $label\n")
   }
-  def writeGoto(label:String):Unit={
-    printWriter.write(s"goto $label\n")
+  def writeGoto(label:String):String={
+    (s"goto $label\n")
   }
-  def writeIf(label:String):Unit={
-    printWriter.write(s"if-goto $label\n")
+  def writeIf(label:String):String={
+    (s"if-goto $label\n")
   }
-  def writeCall(name:String,nArgs:Int):Unit={
-    printWriter.write(s"call $name $nArgs\n")
+  def writeCall(name:String,nArgs:Int):String={
+    (s"call $name $nArgs\n")
   }
-  def writeFunction(name:String,nLocals:Int):Unit={
-    printWriter.write(s"function $name $nLocals\n")
+  def writeFunction(name:String,nLocals:Int):String={
+     s"function $name $nLocals\n"
   }
-  def writeReturn():Unit={
-    printWriter.write("push constant 0\n")
-    printWriter.write("return\n")
+  def writeReturn():String={
+    "push constant 0\n"+ "return\n"
   }
 
   //close the output file for writing
@@ -108,13 +107,13 @@ object VM_Writer {
       writeArithmetic(Command.EQ)
     else println("error in expression_to_vm_ops")
   }
-  def term_to_vm_ops(basic_op:String):Unit= {
+  def term_to_vm_ops(basic_op:String):String= {
     if (basic_op == "-")
       writeArithmetic(Command.NEG)
     else if (basic_op == "~")
       writeArithmetic(Command.NOT)
-    else if (basic_op.contains("integer ".+()))
-      writePush(Segment.CONSTANT,basic_op.)//result = "push constant "+basic_op.split(' ').last
+  //  else if (basic_op.contains("integer ".+()))
+    //  writePush(Segment.CONSTANT,basic_op.)//result = "push constant "+basic_op.split(' ').last
     else if (basic_op == "True")
       writePush(Segment.CONSTANT,0)
     else if (basic_op == "False"||basic_op=="null")
@@ -126,7 +125,7 @@ object VM_Writer {
         "\ttemp = cast(int)str[i];\n" +
         writePush(Segment.CONST,temp)
         writeCall("String.appendChar", 2) */
-    else  println("error in term_to_vm_ops")
+    else  ("error in term_to_vm_ops")
   }
 
 }

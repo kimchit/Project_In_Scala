@@ -48,8 +48,8 @@ object Parsing extends App {
 
             }
           }
-          VM_Writer.Contsructor(fileObject);
-          ParsingFunctions.start(sourceFileTokens);
+          //VM_Writer.Contsructor(fileObject);
+          printWriter.write(ParsingFunctions.start(sourceFileTokens))
           sourceFileTokens=List[Token]()
           printWriter.close();
       }
