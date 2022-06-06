@@ -85,7 +85,7 @@ object VM_Writer {
   printWriter.close()
     return outPutFile
   }
-  def expression_to_vm_ops(basic_op:String):Unit= {
+  def expression_to_vm_ops(basic_op:String):String= {
 
     if (basic_op == "+")
       writeArithmetic(Command.ADD)
@@ -105,7 +105,10 @@ object VM_Writer {
       writeArithmetic(Command.LT)
     else if (basic_op == "=")
       writeArithmetic(Command.EQ)
-    else println("error in expression_to_vm_ops")
+    else {
+      println("error in expression_to_vm_ops")
+      return ""
+    }
   }
   def term_to_vm_ops(basic_op:String):String= {
     if (basic_op == "-")

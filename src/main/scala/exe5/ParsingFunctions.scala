@@ -4,6 +4,7 @@ import exe5.Token
 
 import java.io.File
 import java.util
+import javax.xml.transform.Result
 import scala.collection.immutable.Range.Int
 
 object ParsingFunctions {
@@ -21,9 +22,11 @@ object ParsingFunctions {
   val firstType:List[String]=List("int","char","boolean")
   var symbolTable: SymbolTable = null;
   var class_name: String = null
-  var label_num:Int=0;
-  var label_num_while:Int=0;
+  var function_name:String=null
+  var label_num_if:Int=0
+  var label_num_while:Int=0
   var num_param_list: Int = 0;
+  var sub_routine_source:String=null;
 
   def start(input:List[Token]):String={
     symbolTable = new SymbolTable();
@@ -39,25 +42,6 @@ object ParsingFunctions {
 
   //confirms that the current token matches the expected token
   def matchTerminal(token:String):Unit={
-      if(current.getOpenLabel()=="<identifier>")
-      {
-        //val key = current.getContent()
-        //if(symbolTable.typeOf(key)=="")
-          // symbolTable.define(key,)
-
-      }
-      if(current.getOpenLabel()=="<keyword>")
-      {
-        if(current.getContent()=="this")
-        {
-          push("pointer", 0)
-        }
-        if(current.getContent()=="that")
-        {
-          push("pointer", 1)
-        }
-
-      }
     next_token()
   }
 
@@ -74,6 +58,7 @@ object ParsingFunctions {
 
   def class_():Unit={
     matchTerminal("class")
+    class_name=current.getContent()
     className()
     matchTerminal("{")
     // classVarDec* || subroutineDec*
@@ -88,19 +73,29 @@ object ParsingFunctions {
     matchTerminal("}")
   }
   def classVarDec():Unit={
+    var kind=""
+    var _type=""
+    var name=""
     if(current.getContent()=="static") {
       matchTerminal("static")
       symbolTable.define(next.getContent(), current.getContent(), "STATIC") //name,type,kind="Static"
+    kind="STATIC"
     } else if(current.getContent()=="field") {
       matchTerminal("field")
       symbolTable.define(next.getContent(), current.getContent(), "FIELD") //name,type,kind="field"
+      kind="FIELD"
     }
+    _type=current.getContent()
     type_()
+    name=current.getContent()
     varName()
+    symbolTable.define(name,_type,kind)
     while(current.getContent()==",")
     {
       matchTerminal(",")
+      name=current.getContent()
       varName()
+      symbolTable.define(name,_type,kind)
     }
     matchTerminal(";")
   }
@@ -115,15 +110,24 @@ object ParsingFunctions {
       className()
   }
   def subroutineDec():Unit={
+    label_num_if=0
+    label_num_while=0
+    num_param_list=0;
+    sub_routine_source=""
     symbolTable.startSubRoutine();
-    if(current.getContent()=="constructor")
+
+    if(current.getContent()=="constructor") {
       matchTerminal("constructor")
-    else if(current.getContent()=="function") {
+      sub_routine_source="constructor"
+    } else if(current.getContent()=="function") {
       matchTerminal("function")
-     result+= VM_Writer.writeFunction(s"$class_name.${next.getContent()}", 1)
-    } else if(current.getContent()=="method")
-    {matchTerminal("method")
-      symbolTable.defineMethod(next.getContent(), class_name, "ARG");
+     function_name=(s"$class_name.${next.getContent()}")
+      sub_routine_source="function"
+    }
+    else if(current.getContent()=="method") {
+      matchTerminal("method")
+      symbolTable.defineMethod("this", class_name, Kind.ARG.toString);
+      sub_routine_source="method"
     }
     if(current.getContent()=="void")
       matchTerminal("void")
@@ -136,15 +140,16 @@ object ParsingFunctions {
     subroutineBody()
   }
   def parameterList():Unit={
+
     if(firstType.contains(current.getContent()) || current.getOpenLabel()=="<identifier>" )//0 or 1 time ((type varName)(','type varName)*)?
     {
-      symbolTable.define(next.getContent(), current.getContent(), "ARG")
+      symbolTable.define(next.getContent(), current.getContent(), Kind.ARG.toString)
       type_()
       varName()
       while (current.content == ",") //(','type varName)*
       {
         matchTerminal(",")
-        symbolTable.define(next.getContent(), current.getContent(), "ARG")
+        symbolTable.define(next.getContent(), current.getContent(), Kind.ARG.toString)
         type_()
         varName()
       }
@@ -153,8 +158,19 @@ object ParsingFunctions {
   }
   def subroutineBody():Unit={
     matchTerminal("{")
-    while(current.getContent()=="var")
-      varDec()
+    while(current.getContent()=="var") {
+           varDec()
+    }
+    VM_Writer.writeFunction(function_name,num_param_list)
+    if (sub_routine_source=="constructor") {
+      VM_Writer.writePush(Segment.CONSTANT, symbolTable.varCount(Kind.FIELD.toString))
+      VM_Writer.writeCall("Memory.alloc", 1)
+     VM_Writer.writePop(Segment.POINTER, 0)
+    }
+    else if (sub_routine_source=="method") {
+      VM_Writer.writePush(Segment.ARGUMENT, 0)
+      VM_Writer.writePop(Segment.POINTER, 0)
+    }
     statements()
     matchTerminal("}")
   }
@@ -166,18 +182,19 @@ object ParsingFunctions {
     var var_name=current.getContent()
     varName()
     symbolTable.define(var_name,typ,"var")
+    num_param_list+=1
     while (current.content == ",") //(','type varName)*
     {
       matchTerminal(",")
       var var_name=current.getContent()
       varName()
       symbolTable.define(var_name,typ,"var")
+      num_param_list+=1
     }
     matchTerminal(";")
   }
   def className():Unit={
     if(current.getOpenLabel()=="<identifier>") { //className
-      class_name=current.getContent()
       matchTerminal("<identifier>")
 
     }
@@ -190,16 +207,19 @@ object ParsingFunctions {
     if(current.getOpenLabel()=="<identifier>") //varName
          matchTerminal("<identifier>")
   }
-  /* ***Expressions Parsing Funsvtions*** */
+  /* ***Expressions Parsing Functions*** */
 
   def expression():Unit={ //term (op term)*
-    num_param_list=0
+
     term()
+    num_param_list=0
     num_param_list+=1
     while(firstOp.contains(current.getContent())) //(op term) => 0 or more times
     {
-      op()
+      val operator=current.getContent()
+      next_token()
       term()
+      result+=VM_Writer.writeArithmetic(Command.withName(operator))
       num_param_list+=1
     }
 
@@ -208,8 +228,14 @@ object ParsingFunctions {
   def term():Unit={// integerConstant | stringConstant | keywordConstant | varName | varName '[' expression ']' | subroutineCall |'(' expresison  ')'| unaryOp term
 
     if(current.getContent()=="~"||current.getContent()=="-") { //unaryOp term
-      unaryOp()
+      val operator=current.getContent()
+      next_token()
       term()
+      if(operator=="~")
+        result+=VM_Writer.writeArithmetic(Command.NOT)
+      else //operator= "-"
+      result+=VM_Writer.writeArithmetic(Command.NEG)
+
     }
     else if(current.getContent()=="(")//'(' expresison  ')'
     {
@@ -218,19 +244,26 @@ object ParsingFunctions {
       matchTerminal(")")
     }
     else if(current.getOpenLabel()=="<identifier>" & next.getContent()=="[") //varName '[' expression ']'
-    {
+    { var var_name=current.getContent()
       varName()
       matchTerminal("[")
       expression()
+      VM_Writer.writePush(Segment.withName(symbolTable.kindOf(var_name)),symbolTable.indexOf(var_name))
+      VM_Writer.writeArithmetic(Command.ADD)
+      VM_Writer.writePop(Segment.POINTER,1)
+      VM_Writer.writePush(Segment.THAT,0)
       matchTerminal("]")
     }
     else if((current.getOpenLabel()=="<identifier>" & next.getContent()==".")||(current.getOpenLabel()=="<identifier>" & next.getContent()=="("))//subroutineCall
-      subroutinecall()
+       subroutinecall()
     else if(current.getOpenLabel()=="<integerConstant>")//integerConstant
-      matchTerminal("<integerConstant>")
+      {
+        VM_Writer.writePush(Segment.CONSTANT, current.getContent().toInt)
+        matchTerminal("<integerConstant>")
+      }
     else if (current.getOpenLabel()=="<stringConstant>") {//stringConstant
       val value=current.getContent()
-      push("constant",value.length)
+      result+=VM_Writer.writePush(Segment.CONSTANT,value.length)
       matchTerminal("<stringConstant>")
      result+=VM_Writer.writeCall("String.new",1)
       for( i <- 1 until value.length)  {
@@ -240,48 +273,73 @@ object ParsingFunctions {
         }
 
     } else if(current.getOpenLabel()=="<keyword>")//keywordConstant
-      matchTerminal("<keyword>")
+      {
+        if(current.getContent()=="this") {
+          result+=VM_Writer.writePush(Segment.POINTER,0)
+        } else if(current.getContent()=="true"){
+         result+=VM_Writer.writePush(Segment.CONSTANT,0)
+         result+=VM_Writer.writeArithmetic(Command.NOT)
+        }
+        else if (current.getContent()=="false") {
+            result+=VM_Writer.writePush(Segment.CONSTANT,0)
+          }
+        matchTerminal("<keyword>")
+      }
     else //varName
-      matchTerminal("<identifier>")
-
+      { var var_name=current.getContent()
+        VM_Writer.writePush(Segment.withName(symbolTable.kindOf(var_name)),symbolTable.indexOf(var_name))
+        matchTerminal("<identifier>")
+      }
   }
 
   def subroutinecall():Unit={ //subroutineName '(' epressionList ')' | (className | varName) '.' subroutineName '(' epressionList ')'
-    var sub_name=current.getContent();
+    var sub_name_1=current.getContent();
+    var sub_name_2=""
+    var sub_name_3=""
+    var counter = 1
     if(next.getContent()==".")
     {
       className()
       matchTerminal(".")
-      if(symbolTable.typeOf(sub_name)=="")
+      sub_name_3=sub_name_1+"."
+      sub_name_2=current.getContent()
+      sub_name_3+=current.getContent()
+      if(symbolTable.typeOf(sub_name_1)=="")
       {
-       expressionList()
-        result+=VM_Writer.writeCall(s"$class_name.$sub_name",0);
+        result+=VM_Writer.writePush(Segment.withName(symbolTable.kindOf(sub_name_1)), symbolTable.indexOf(sub_name_1))
+        sub_name_3 = symbolTable.typeOf(sub_name_1) + "." +sub_name_2
+
       }
       else
       {
-        push(symbolTable.kindOf(sub_name))
-        expressionList()
-        result+=VM_Writer.writeCall(s"$class_name.$sub_name",1);
+        counter=0
       }
+      matchTerminal("(")
+      parameterList()
+      counter+=num_param_list
+      matchTerminal(")")
+      result+=VM_Writer.writeCall(sub_name_3,counter)
     }
-    else{
-    push("pointer",0)
-    sub_name=current.getContent()
-    subroutineName()
-    matchTerminal("(")
-    expressionList()
-    result+=VM_Writer.writeCall(s"$class_name.$sub_name", num_param_list)
-    matchTerminal(")")}
+    else {
+      result+=VM_Writer.writePush(Segment.POINTER,0)
+      sub_name_3=s"$class_name.$sub_name_1"
+      parameterList()
+      counter+=num_param_list
+      matchTerminal(")")
+      VM_Writer.writeCall(sub_name_3,counter)
+    }
   }
 
   def expressionList():Unit={// (expression (',' expression)* )?
     if(current.getContent()!=")") //0 or 1 times
     {
       expression()
+      num_param_list+=1
       while(current.getContent()==",") // ( ',' expression ) * => 0 or more times
       {
         matchTerminal(",")
         expression()
+        num_param_list+=1
       }
     }
   }
@@ -289,41 +347,41 @@ object ParsingFunctions {
   def op():Unit={// '=' | '+' | '*' | '/' | '&' | '|' | '<' | '>' | '-'
     if(current.getContent()=="=") {
       matchTerminal("=")
-      push("eq")
+      result+=VM_Writer.term_to_vm_ops(Command.EQ.toString)
     } else if(current.getContent()=="+") {
       matchTerminal("+")
-      push("add")
+      result+=VM_Writer.term_to_vm_ops(Command.ADD.toString)
     } else if(current.getContent()=="*") {
       matchTerminal("*")
-      push("Math.multiply", 2)
+      result+=VM_Writer.expression_to_vm_ops("*")
     } else if(current.getContent()=="/") {
       matchTerminal("/")
-      push("Math.divide", 2)
+      result+=VM_Writer.term_to_vm_ops("/")
     } else if(current.getContent()=="&amp;") {
       matchTerminal("&amp;")
-    push("and")
+      result+=VM_Writer.term_to_vm_ops(Command.AND.toString)
     } else if(current.getContent()=="|") {
       matchTerminal("|")
-      push("or")
+      result+=VM_Writer.term_to_vm_ops(Command.OR.toString)
     } else if(current.getContent()=="&gt;") {
       matchTerminal("&gt;")
-      push("gt")
+      result+=VM_Writer.term_to_vm_ops(Command.GT.toString)
     } else if(current.getContent()=="&lt;") {
       matchTerminal("&lt;")
-      push("lt")
+      result+=VM_Writer.term_to_vm_ops(Command.LT.toString)
     } else if(current.getContent()=="-") {
       matchTerminal("-")
-      push("neg")
+      result+=VM_Writer.term_to_vm_ops(Command.NEG.toString)
     } else println("error in op\n")
   }
   def unaryOp():Unit={ // '~' | "'-'
     if(current.getContent()=="~") {
       matchTerminal("~")
-      push("not")
+     result+= VM_Writer.term_to_vm_ops(Command.NOT.toString)
     }
     else if(current.getContent()=="-") {
       matchTerminal("-")
-      push("neg")
+      result+=VM_Writer.term_to_vm_ops(Command.NEG.toString)
     } else println("error in unaryOp\n")
   }
 
@@ -339,7 +397,7 @@ object ParsingFunctions {
       result+=VM_Writer.term_to_vm_ops("null")
     } else if(current.getContent()=="this") {
       matchTerminal("this")
-      push("pointer", 0)
+      result+=VM_Writer.writePush(Segment.POINTER, 0)
     } else println("error in KeywordsConstants\n")
   }
 
@@ -359,9 +417,10 @@ object ParsingFunctions {
       letStatement()
     else if(current.content=="if")
       ifStatement()
-    else if(current.content=="do")
+    else if(current.content=="do") {
       doStatement()
-    else if(current.content=="while")
+      VM_Writer.writePop(Segment.TEMP,0)
+    } else if(current.content=="while")
       whileStatement()
     else if(current.content=="return")
       returnStatement()
@@ -370,47 +429,57 @@ object ParsingFunctions {
 
   def letStatement():Unit={ // 'let' varName ('[' expression ']')? '=' expression ';'
     matchTerminal("let")
-    var n=current.getContent()
+    var name=current.getContent()
     varName()
+    var one_time=false
     // ( '[' expression ']' )=> 0 or 1 times
     if(current.getContent()=="[")
     {
       matchTerminal("[")
       expression()
-      push(n)
-      push("add")
+      VM_Writer.writePush(Segment.withName(symbolTable.kindOf(name)),symbolTable.indexOf(name))
+      VM_Writer.writeArithmetic(Command.ADD)
       matchTerminal("]")
+      one_time=true
     }
     matchTerminal("=")
     expression()
-    //pop("temp", 0)
-    //pop ("pointer", 1)
-    push("temp", 0)
-    pop("that",0)
+    if (!one_time) {
+      VM_Writer.writePop(Segment.withName(symbolTable.kindOf(name)), symbolTable.indexOf(name))
+
+    }
+    else {
+      VM_Writer.writePop(Segment.TEMP, 0)
+      VM_Writer.writePop(Segment.POINTER, 1)
+      VM_Writer.writePush(Segment.TEMP, 0)
+      VM_Writer.writePop(Segment.THAT, 0)
+      }
     matchTerminal(";")
   }
   def ifStatement():Unit={ // 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
     matchTerminal("if")
     matchTerminal("(")
     expression()
-    result+=VM_Writer.writeIf(s"IF_TRUE$label_num")
-    result+=VM_Writer.writeGoto(s"IF_FALSE$label_num")
-    result+=VM_Writer.writeLabel(s"IF_TRUE$label_num")
+    result+=VM_Writer.writeIf(s"IF_TRUE$label_num_if")
+    result+=VM_Writer.writeGoto(s"IF_FALSE$label_num_if")
+    result+=VM_Writer.writeLabel(s"IF_TRUE$label_num_if")
     matchTerminal(")")
     matchTerminal("{")
     statements()
-    result+=VM_Writer.writeGoto(s"IF_END$label_num")
-    result+=VM_Writer.writeLabel(s"IF_FALSE$label_num")
     matchTerminal("}")
     if(current.getContent()=="else")//('else' '{' statements '}') => 0 or 1 times
     {
+      result+=VM_Writer.writeGoto(s"IF_END$label_num_if")
+      result+=VM_Writer.writeLabel(s"IF_FALSE$label_num_if")
       matchTerminal("else")
       matchTerminal("{")
       statements()
       matchTerminal("}")
+      result+=VM_Writer.writeLabel(s"IF_END$label_num_if")
     }
-    result+=VM_Writer.writeLabel(s"IF_END$label_num")
-    label_num+=1//increase the lable counter by 1
+    else
+      result+=VM_Writer.writeLabel(s"IF_END$label_num_if")
+    label_num_if+=1//increase the lable counter by 1
   }
 
   def whileStatement():Unit={ // 'while' '(' expression ')' '{' statements '}'
@@ -418,7 +487,7 @@ object ParsingFunctions {
     matchTerminal("(")
     result+=VM_Writer.writeLabel(s"WHILE_EXP$label_num_while")
     expression()
-    push("not")
+    result+=VM_Writer.writeArithmetic(Command.NOT)
     result+=VM_Writer.writeIf(s"WHILE_END$label_num_while")
     matchTerminal(")")
     matchTerminal("{")
@@ -432,495 +501,27 @@ object ParsingFunctions {
   def doStatement():Unit={// 'do' subroutineCall ';'
     matchTerminal("do")
     subroutinecall()
-    pop("temp",0)
     matchTerminal(";")
 
   }
 
   def returnStatement():Unit={ // 'return' expression? ';'
     matchTerminal("return")
-    result+=VM_Writer.writeReturn()
+
     //expression => 0 or 1 times
-    if(current.getContent()!=";")
-      expression()
-    matchTerminal(";")
-
+    if(current.getContent()!=";") {
+       expression()
+      matchTerminal(";")
+      result+=VM_Writer.writeReturn()
+    }
+    else //0 expressions
+      {
+        matchTerminal(";")
+        result+=VM_Writer.writePush(Segment.CONSTANT,0)
+        result+=VM_Writer.writeReturn()
+      }
   }
 
-  def push(t:String,index:Int):Unit={
-   result+= s"push $t $index\n"
-  }
-  def push(op:String):Unit={
-   result+= s"push $op\n"
-  }
-  def pop(t:String,index:Int):Unit={
-    result+= s"pop $t $index\n"
-  }
 }
 
 
-/*
-
-object ParsingFunctions {
-  var listOfTokens: List[Token] = null
-  var current: Token = null //variable that holds the current tokens value
-  var next: Token = null //variable that holds the current tokens value
-  var result: String = ""
-  val firstTerm: List[String] = List("<integerConstant>", "<stringConstant>", "<keywordConstant>", "<identifier>", "(", "-", "~")
-  val firstStatements: List[String] = List("let", "if", "while", "do", "return")
-  val firstOp: List[String] = List("=", "+", "*", "/", "&amp;", "|", "&lt;", "&gt;", "-")
-  val firstClassVarDec: List[String] = List("static", "field")
-  val firstSubroutineDec: List[String] = List("constructor", "function", "method")
-  val firstType: List[String] = List("int", "char", "boolean")
-  //var class_scope_symbol_table: SymbolTable = null;
-  //var method_scope_symbol_table: SymbolTable = null;
-  var parse_to_vm = new Parsing_to_vm_language()
-  var symbolTable: SymbolTable = null;
-  var class_name: String = null
-  var whileExpCounter = 0
-  var whileEndCounter = 0
-  var if_counter = 0;
-
-  def start(input: List[Token]): File = {
-    symbolTable = new SymbolTable();
-    result = ""
-    listOfTokens = input
-    current = input(0)
-    next = input(1)
-    class_()
-    //return result*/
-    //listOfTokens.foreach(
-    //token=>
-
-    // )
-   /* VM_Writer.close()
-  }
-
-  /* ***helper methods*** */
-
-  //confirms that the current token matches the expected token
-  def matchTerminal(token: String): Unit = {
-
-    if (current.getContent() == token || current.getOpenLabel() == token) {
-      if(current.getOpenLabel()=="<identifier>")
-        {
-          //find in the correct table and push it
-        }
-      if(current.getOpenLabel()=="<keyword>")
-      {
-        if(current.getContent()=="this")
-          {
-            //push pointer 0
-          }
-        if(current.getContent()=="that")
-          {
-            //push pointer 1
-          }
-
-      }
-
-
-      next_token()
-    }
-  }
-
-  //updates current and next tokens from the token list
-  def next_token(): Unit = {
-
-    if (listOfTokens.indexOf(current) + 1 != listOfTokens.length)
-      current = listOfTokens(listOfTokens.indexOf(current) + 1)
-    if (listOfTokens.indexOf(current) + 1 != listOfTokens.length)
-      next = listOfTokens(listOfTokens.indexOf(current) + 1)
-  }
-
-  /* ***Program Structure Parsing Functions*** */
-
-  def class_(): Unit = {
-    matchTerminal("class")
-    className()
-    matchTerminal("{")
-    // classVarDec* || subroutineDec*
-    while (firstClassVarDec.contains(current.getContent())) {
-      classVarDec()
-    }
-    while (firstSubroutineDec.contains(current.getContent())) {
-      subroutineDec()
-    }
-    matchTerminal("}")
-  }
-
-  def classVarDec(): Unit = {
-
-    if (current.getContent() == "static") {
-      matchTerminal("static")
-      symbolTable.define(next.getContent(), current.getContent(), "STATIC") //name,type,kind="Static"
-    }
-
-    else if (current.getContent() == "field") {
-      matchTerminal("field")
-      symbolTable.define(next.getContent(), current.getContent(), "FIELD") //name,type,kind="field"
-    }
-    type_()
-    varName()
-    while (current.getContent() == ",") {
-      matchTerminal(",")
-      varName()
-    }
-    matchTerminal(";")
-    result += "</classVarDec>\n"
-  }
-
-  def type_(): Unit = {
-    if (current.getContent() == "int")
-      matchTerminal("int")
-    else if (current.getContent() == "char")
-      matchTerminal("char")
-    else if (current.getContent() == "boolean")
-      matchTerminal("boolean")
-    else
-      className()
-  }
-
-  def subroutineDec(): Unit = {
-    symbolTable.startSubRoutine(); // reinitialize the table for the subroutine
-    result += "<subroutineDec>\n"
-    if (current.getContent() == "constructor")
-      matchTerminal("constructor")
-    else if (current.getContent() == "function") {
-      matchTerminal("function")
-      VM_Writer.writeFunction(s"$class_name.${next.getContent()}", 0)
-
-    } else if (current.getContent() == "method") {
-      matchTerminal("method")
-      symbolTable.defineMethod(next.getContent(), class_name, "ARG"); //there is mistake
-
-    }
-    if (current.getContent() == "void")
-      matchTerminal("void")
-    else
-      type_()
-    subroutineName()
-    matchTerminal("(")
-    parameterList()
-    matchTerminal(")")
-    subroutineBody()
-    result += "</subroutineDec>\n"
-    //firstSubroutineDec.re
-  }
-
-  def parameterList(): Unit = {
-    result += "<parameterList>\n"
-    if (firstType.contains(current.getContent()) || current.getOpenLabel() == "<identifier>") //0 or 1 time ((type varName)(','type varName)*)?
-    {
-      symbolTable.define(next.getContent(), current.getContent(), "ARG")
-      type_()
-      varName()
-      while (current.content == ",") //(','type varName)*
-      {
-        matchTerminal(",")
-        symbolTable.define(next.getContent(), current.getContent(), "ARG")
-        type_()
-        varName()
-      }
-
-    }
-    result += "</parameterList>\n"
-  }
-
-  def subroutineBody(): Unit = {
-    result += "<subroutineBody>\n"
-    matchTerminal("{")
-    while (current.getContent() == "var")
-      varDec()
-    statements()
-    matchTerminal("}")
-    result += "</subroutineBody>\n"
-  }
-
-  def varDec(): Unit = {
-    result += "<varDec>\n"
-    if (current.getContent() == "var")
-      matchTerminal("var")
-    var _type = current.getContent()
-    symbolTable.define(next.getContent(), _type, "var");
-    type_()
-    varName()
-    while (current.content == ",") //(','type varName)*
-    {
-      matchTerminal(",")
-      symbolTable.define(current.getContent(), _type, "var");
-      varName()
-
-    }
-    matchTerminal(";")
-    result += "</varDec>\n"
-  }
-
-  def className(): Unit = {
-    if (current.getOpenLabel() == "<identifier>") { //className
-      class_name = current.getContent()
-      matchTerminal("<identifier>")
-    }
-  }
-
-  def subroutineName(): Unit = {
-    if (current.getOpenLabel() == "<identifier>") {
-      class_name.concat(current.getContent())
-      matchTerminal("<identifier>")
-    }
-  }
-
-  def varName(): Unit = {
-    if (current.getOpenLabel() == "<identifier>") //varName
-      matchTerminal("<identifier>")
-  }
-  /* ***Expressions Parsing Funsvtions*** */
-
-  def expression(): Unit = { //term (op term)*
-    result += "<expression>\n"
-    term()
-    while (firstOp.contains(current.getContent())) //(op term) => 0 or more times
-    {
-      op()
-      term()
-    }
-    result += "</expression>\n"
-  }*/
-/*
-  def term(): Unit = { // integerConstant | stringConstant | keywordConstant | varName | varName '[' expression ']' | subroutineCall |'(' expresison  ')'| unaryOp term
-    result += "<term>\n"
-    if (current.getContent() == "~" || current.getContent() == "-") { //unaryOp term
-      unaryOp()
-      term()
-    }
-    else if (current.getContent() == "(") //'(' expresison  ')'
-    {
-      matchTerminal("(")
-      expression()
-      matchTerminal(")")
-    }
-    else if (current.getOpenLabel() == "<identifier>" & next.getContent() == "[") //varName '[' expression ']'
-    {
-      varName()
-      matchTerminal("[")
-      expression()
-      matchTerminal("]")
-    }
-    else if ((current.getOpenLabel() == "<identifier>" & next.getContent() == ".") || (current.getOpenLabel() == "<identifier>" & next.getContent() == "(")) //subroutineCall
-      subroutinecall()
-    else if (current.getOpenLabel() == "<integerConstant>") //integerConstant
-    {
-      VM_Writer.writePush(Segment.CONSTANT, current.getContent().toInt)
-      matchTerminal("<integerConstant>")
-    }
-    else if (current.getOpenLabel() == "<stringConstant>") //stringConstant
-      matchTerminal("<stringConstant>")
-    else if (current.getOpenLabel() == "<keyword>") //keywordConstant
-      matchTerminal("<keyword>")
-    else //varName
-      matchTerminal("<identifier>")
-    result += "</term>\n"
-  }
-
-  def subroutinecall(): Unit = { //subroutineName '(' epressionList ')' | (className | varName) '.' subroutineName '(' epressionList ')'
-    if (next.getContent() == ".") //(className | varName) '.' subroutineName '(' epressionList ')'
-    {
-      class_()
-      matchTerminal(".")
-    }
-    //this code fragment applies to both options
-    subroutineName()
-    matchTerminal("(")
-    expressionList()
-    matchTerminal(")")
-  }
-
-  def expressionList(): Unit = { // (expression (',' expression)* )?
-    result += "<expressionList>\n"
-    if (current.getContent() != ")") //0 or 1 times
-    {
-      expression()
-      while (current.getContent() == ",") // ( ',' expression ) * => 0 or more times
-      {
-        matchTerminal(",")
-        expression()
-      }
-    }
-    result += "</expressionList>\n"
-  }
-
-  def op(): Unit = { // '=' | '+' | '*' | '/' | '&' | '|' | '<' | '>' | '-'
-    if (current.getContent() == "=") {
-      matchTerminal("=")
-      parse_to_vm.expression_to_vm_ops("=")
-    } else if (current.getContent() == "+") {
-      matchTerminal("+")
-      parse_to_vm.expression_to_vm_ops("+")
-    }
-    else if (current.getContent() == "*") {
-      matchTerminal("*")
-      parse_to_vm.expression_to_vm_ops("*")
-    } else if (current.getContent() == "/") {
-      matchTerminal("/")
-      parse_to_vm.expression_to_vm_ops("/")
-    } else if (current.getContent() == "&amp;") {
-      matchTerminal("&amp;")
-      parse_to_vm.expression_to_vm_ops("&")
-    } else if (current.getContent() == "|") {
-      matchTerminal("|")
-      parse_to_vm.expression_to_vm_ops("|")
-    } else if (current.getContent() == "&gt;") {
-      matchTerminal("&gt;")
-      parse_to_vm.expression_to_vm_ops(">")
-    } else if (current.getContent() == "&lt;") {
-      matchTerminal("&lt;")
-      parse_to_vm.expression_to_vm_ops("<")
-    } else if (current.getContent() == "-") {
-      matchTerminal("-")
-      parse_to_vm.expression_to_vm_ops("-")
-    } else println("error in op\n")
-  }
-
-  def unaryOp(): Unit = { // '~' | "'-'
-    if (current.getContent() == "~") {
-      matchTerminal("~")
-      //push on current.getContent- find in the symbol table
-      //pop
-      parse_to_vm.term_to_vm_ops("~")
-
-    } else if (current.getContent() == "-") {
-      matchTerminal("-")
-      parse_to_vm.term_to_vm_ops("-")
-    }
-    else println("error in unaryOp\n")
-  }
-
-  def KeywordConstants(): Unit = { // 'true' | 'false' | 'null' | 'this'
-    if (current.getContent() == "true")
-      matchTerminal("true")
-    else if (current.getContent() == "false")
-      matchTerminal("false")
-    else if (current.getContent() == "null")
-      matchTerminal("null")
-    else if (current.getContent() == "this")
-      matchTerminal("this")
-    else println("error in KeywordsConstants\n")
-  }
-
-  /* ***Statements Parsing Functions*** */
-
-  //statement*
-  def statements(): Unit = {
-    result += "<statements>\n"
-    while (firstStatements.contains(current.getContent()))
-      statement()
-    result += "</statements>\n"
-  }
-
-
-  def statement(): Unit = { //letStatement | ifStatement | doStatement | whileStatement| returnStatement
-    if (current.content == "let")
-      letStatement()
-    else if (current.content == "if")
-      ifStatement()
-    else if (current.content == "do")
-      doStatement()
-    else if (current.content == "while")
-      whileStatement()
-    else if (current.content == "return")
-      returnStatement()
-    else println("error in \"statement\" \n")
-    VM_Writer.writeCall(class_name, 1)
-  }*/
-/*
-  def letStatement(): Unit = { // 'let' varName ('[' expression ']')? '=' expression ';'
-    result += "<letStatement>\n"
-    matchTerminal("let")
-    varName()
-    // ( '[' expression ']' )=> 0 or 1 times
-    if (current.getContent() == "[") {
-      matchTerminal("[")
-      expression()
-      matchTerminal("]")
-    }
-    matchTerminal("=")
-    expression()
-    matchTerminal(";")
-    result += "</letStatement>\n"
-  }
-
-  def ifStatement(): Unit = { // 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
-    result += "<ifStatement>\n"
-    matchTerminal("if")
-    matchTerminal("(")
-    expression()
-    VM_Writer.writeIf(s"IF_TRUE$if_counter")
-    VM_Writer.writeGoto(s"IF_FALSE$if_counter")
-    VM_Writer.writeLabel(s"IF_TRUEi$if_counter")
-    matchTerminal(")")
-    matchTerminal("{")
-    statements()
-    VM_Writer.writeGoto(s"IF_END$if_counter")
-    VM_Writer.writeLabel(s"IF_FALSE$if_counter")
-    matchTerminal("}")
-    if (current.getContent() == "else") //('else' '{' statements '}') => 0 or 1 times
-    {
-      matchTerminal("else")
-      matchTerminal("{")
-      statements()
-      matchTerminal("}")
-    }
-    VM_Writer.writeLabel(s"IF_END$if_counter")
-    if_counter += 1
-    result += "</ifStatement>\n"
-  }
-
-  def whileStatement(): Unit = { // 'while' '(' expression ')' '{' statements '}'
-    result += "<whileStatement>\n"
-    matchTerminal("while")
-    VM_Writer.writeLabel(s"WHILE_EXP$whileExpCounter") //label 9
-    matchTerminal("(")
-    expression()
-    parse_to_vm.term_to_vm_ops("~") //not
-    VM_Writer.writeLabel(s"WHILE_END$whileEndCounter")
-    matchTerminal(")")
-    matchTerminal("{")
-    statements()
-    VM_Writer.writeIf(s"WHILE_EXP$whileExpCounter")
-    VM_Writer.writeLabel(s"WHILE_END$whileEndCounter")
-    matchTerminal("}")
-    result += "</whileStatement>\n";
-    whileEndCounter += 1
-    whileExpCounter += 1;
-  }
-
-  def doStatement(): Unit = { // 'do' subroutineCall ';'
-    result += "<doStatement>\n"
-    matchTerminal("do")
-    subroutinecall()
-    matchTerminal(";")
-    result += "</doStatement>\n"
-  }
-
-  def returnStatement(): Unit = { // 'return' expression? ';'
-    result += "<returnStatement>\n"
-    matchTerminal("return")
-    VM_Writer.writeReturn()
-    //epression => 0 or 1 times
-    if (current.getContent() != ";")
-      expression()
-    matchTerminal(";")
-    result += "</returnStatement>\n"
-
-  }
-
-
-  def foundTypeIdentifier(id: String): (String, String, Int) = { //(type,kind,int)
-    if (symbolTable.subroutine_symbolTable.contains(id))
-      return symbolTable.subroutine_symbolTable(id)
-    else if (symbolTable.class_symbolTable.contains(id))
-      return symbolTable.class_symbolTable(id)
-    return null
-  }
-}
-*/

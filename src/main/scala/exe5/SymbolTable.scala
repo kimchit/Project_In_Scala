@@ -24,16 +24,25 @@ class SymbolTable (){
   }
 
    //defines a new identifier for a given name, type and kind and assign it a running index
-    def define(name:String,_type:String,kind:String):Unit={
-      val i = counter(Symbol.withName(kind.toUpperCase()))
-      if (kind=="arg" || kind=="var")
-      subroutine_symbolTable.addOne(name,(_type,kind,i))
-      else
-        class_symbolTable.addOne(name,(_type,kind,i))
+    def define(name:String,_type:String,_kind:String):Unit={
+      val i = counter(Symbol.withName(_kind.toUpperCase()))
+
+      //check if it should be defined  in the class scope
+      if (_kind.equals(Kind.STATIC.toString.toLowerCase()) || _kind.equals(Kind.FIELD.toString.toLowerCase()))
+         {
+           if(!class_symbolTable.contains(name))
+             class_symbolTable.put(name,(_type,_kind,i))
+         }
+      else // defined in the method scope
+        { if(!subroutine_symbolTable.contains(name))
+          subroutine_symbolTable.put(name,(_type,_kind,i))
+        }
+
     }
+
+  // special initial definition of a method with 0 arguments
   def defineMethod(name:String,_type:String,kind:String):Unit={
     subroutine_symbolTable.addOne(name,(_type,kind,0))
-
   }
 
   //returns the number of variables of the given kind already defined in the current scope
@@ -44,9 +53,9 @@ class SymbolTable (){
   //returns the kind of  the named identifier
   def kindOf(name:String): String =
   {
-    if(class_symbolTable.contains(name)==true)
+    if(class_symbolTable.contains(name))
       return class_symbolTable(name)._2
-    else if(subroutine_symbolTable.contains(name)==true)
+    else if(subroutine_symbolTable.contains(name))
       return subroutine_symbolTable(name)._2
     return Symbol.NONE.toString
   }
@@ -54,14 +63,13 @@ class SymbolTable (){
   //returns the type of  the named identifier
   def typeOf(name:String): String =
   {
-    if(class_symbolTable.contains(name)==true)
+    if(class_symbolTable.contains(name))
       return class_symbolTable(name)._2
-    else if(subroutine_symbolTable.contains(name)==true)
+    else if(subroutine_symbolTable.contains(name))
       return subroutine_symbolTable(name)._2
     println("index out of range")
     return ""
   }
-
   //returns the index assigned to the named identifier
   def indexOf(name:String): Int =
   {
